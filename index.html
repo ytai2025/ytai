@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸運折扣任你抽</title>
+    <style>
+        :root {
+            --primary: #00ff88;
+            --bg: #121212;
+            --wheel-border: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #ff0055, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+            text-align: center;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 360px;
+            height: 360px;
+            margin: 20px 0;
+            filter: drop-shadow(0 0 15px rgba(0, 255, 136, 0.2));
+        }
+
+        /* 指針 */
+        .stopper {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 50px;
+            clip-path: polygon(100% 0, 50% 100%, 0 0);
+            z-index: 10;
+            background: linear-gradient(to bottom, #ff0055, #ff4d4d);
+            box-shadow: 0 0 15px #ff0055;
+        }
+
+        /* 轉盤主體 */
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid var(--wheel-border);
+            position: relative;
+            transition: transform 4s cubic-bezier(0.1, 0.7, 0.1, 1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.5);
+            
+            /* 背景角度定義 (Conic Gradient 0deg = 12點鐘):
+               1. 1999 (0° ~ 270°) -> 黑色
+               2. 1299 (270° ~ 310°) -> 藍色 (40度寬)
+               3. 1499 (310° ~ 340°) -> 橘色 (30度寬)
+               4. 1099 (340° ~ 360°) -> 粉色 (20度寬 - 最小!)
+            */
+            background: conic-gradient(
+                #2a2a2a 0deg 270deg,   
+                #2980b9 270deg 310deg, 
+                #f39c12 310deg 340deg, 
+                #ff0055 340deg 360deg  
+            );
+        }
+
+        .wheel::after {
+            content: "";
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px; height: 50px;
+            background: radial-gradient(circle, #333, #000);
+            border: 2px solid #00ff88;
+            border-radius: 50%;
+            z-index: 5;
+        }
+
+        /* 文字標籤設定 */
+        .label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            /* 關鍵修正：先置中，再旋轉 */
+            transform-origin: center; 
+            color: #fff;
+            font-weight: bold;
+            user-select: none;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .label span {
+            display: block;
+            /* 文字修正：讓文字底部朝向圓心 */
+        }
+
+        /* 座標修正數學 (重要！):
+           CSS Rotate 0度 = 3點鐘方向 (右)
+           Gradient 0度 = 12點鐘方向 (上)
+           
+           所以：CSS角度 = Gradient角度 - 90度
+        */
+
+        /* $1999 (區間 0-270) -> 中心 135度
+           CSS = 135 - 90 = 45度
+        */
+        .label-1999 { 
+            transform: translate(-50%, -50%) rotate(45deg) translate(80px) rotate(-45deg); 
+            font-size: 28px;
+            color: #666; /* 讓黑色區塊文字暗一點，突顯其他 */
+        }
+
+        /* $1299 (區間 270-310) -> 中心 290度
+           CSS = 290 - 90 = 200度
+        */
+        .label-1299 { 
+            transform: translate(-50%, -50%) rotate(200deg) translate(120px) rotate(90deg); 
+            font-size: 14px;
+        }
+
+        /* $1499 (區間 310-340) -> 中心 325度
+           CSS = 325 - 90 = 235度
+        */
+        .label-1499 { 
+            transform: translate(-50%, -50%) rotate(235deg) translate(120px) rotate(90deg); 
+            font-size: 13px;
+        }
+
+        /* $1099 (區間 340-360) -> 中心 350度
+           CSS = 350 - 90 = 260度
+        */
+        .label-1099 { 
+            transform: translate(-50%, -50%) rotate(260deg) translate(130px) rotate(90deg); 
+            font-size: 12px;
+            color: #fff;
+            text-shadow: 0 0 5px #ff0055;
+            font-weight: 900;
+        }
+
+
+        #spinBtn {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+            font-weight: bold;
+        }
+        #spinBtn:hover {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 30px var(--primary);
+        }
+        #spinBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        #confetti-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100;
+        }
+        #resultMsg {
+            margin-top: 15px; height: 30px; color: #fff; font-size: 1.2rem;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5); opacity: 0; transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="confetti-canvas"></canvas>
+    <h1>幸運折扣任你抽！</h1>
+
+    <div class="wheel-container">
+        <div class="stopper"></div>
+        <div class="wheel" id="wheel">
+            <div class="label label-1999"><span>$1999</span></div>
+            <div class="label label-1299"><span>$1299</span></div>
+            <div class="label label-1499"><span>$1499</span></div>
+            <div class="label label-1099"><span>$1099</span></div>
+        </div>
+    </div>
+
+    <div id="resultMsg"></div>
+    <button id="spinBtn">開始抽獎</button>
+
+    <script>
+        const wheel = document.getElementById('wheel');
+        const spinBtn = document.getElementById('spinBtn');
+        const resultMsg = document.getElementById('resultMsg');
+        
+        let currentRotation = 0;
+        let spinCount = 0;
+        const maxRiggedSpins = 5; 
+
+        spinBtn.addEventListener('click', () => {
+            spinBtn.disabled = true;
+            resultMsg.style.opacity = '0';
+            spinCount++;
+
+            const baseSpins = 360 * 10; 
+
+            // 角度計算邏輯 (修正後)
+            // 目標是指針(12點方向, Gradient 0度) 停在特定區間
+            
+            let targetAngle;
+            let outcome;
+
+            if (spinCount < maxRiggedSpins) {
+                // === 失敗 (前4次) ===
+                outcome = 'lose';
+                // 停在 $1999 (0-270度)
+                // 但要營造 "剛剛錯過 $1099" 的感覺
+                // $1099 在 340-360(0)。
+                // 所以指針應該停在 0度 順時針過去一點點的地方 (如 5度~10度)
+                
+                const nearMiss = Math.floor(Math.random() * 10) + 5; // 5度到14度
+                const stopAngle = 360 - nearMiss;
+                targetAngle = baseSpins + stopAngle;
+
+            } else {
+                // === 必勝 (第5次) ===
+                outcome = 'win';
+                // 停在 $1099 (340-360度)
+                // 中心 350度
+                const winTarget = 350;
+                const offset = Math.floor(Math.random() * 6) - 3; // -3 ~ +3 微調
+                const stopAngle = 360 - (winTarget + offset);
+                targetAngle = baseSpins + stopAngle;
+            }
+
+            const currentMod = currentRotation % 360;
+            const targetMod = targetAngle % 360;
+            let adjust = targetMod - currentMod;
+            if (adjust < 0) adjust += 360;
+            
+            const finalRotate = currentRotation + baseSpins + adjust;
+            
+            wheel.style.transform = `rotate(${finalRotate}deg)`;
+            currentRotation = finalRotate;
+
+            setTimeout(() => {
+                spinBtn.disabled = false;
+                spinBtn.innerText = "再來一次";
+                resultMsg.style.opacity = '1';
+
+                if (outcome === 'win') {
+                    resultMsg.innerText = "🎉 恭喜！你抽中了 $1099！ 🎉";
+                    resultMsg.style.color = "#00ff88";
+                    startConfetti();
+                } else {
+                    resultMsg.innerText = "真可惜！獲得原價 $1999";
+                    resultMsg.style.color = "#aaa";
+                }
+            }, 4000);
+        });
+
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function startConfetti() {
+            for (let i = 0; i < 200; i++) {
+                particles.push({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: (Math.random() - 0.5) * 20 - 5,
+                    life: 100 + Math.random() * 50,
+                    color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+                    size: Math.random() * 5 + 2,
+                    gravity: 0.25
+                });
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            if (particles.length === 0) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += p.gravity;
+                p.life--;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                if (p.life <= 0 || p.y > canvas.height) {
+                    particles.splice(i, 1);
+                    i--;
+                }
+            }
+            requestAnimationFrame(animateConfetti);
+        }
+    </script>
+</body>
+</html>
