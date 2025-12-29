@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>幸運折扣任你抽</title>
+    <title>極速折扣狙擊</title>
     <style>
         :root {
             --primary: #00ff88;
-            --bg: #121212;
-            --wheel-border: #ffffff;
+            --danger: #ff0055;
+            --bg: #0a0a0a;
+            --glitch: #00ccff;
         }
 
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Courier New', monospace; /* 使用等寬字體更有電子感 */
             background-color: var(--bg);
             color: white;
             display: flex;
@@ -24,257 +25,256 @@
             overflow: hidden;
         }
 
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            background: linear-gradient(90deg, #ff0055, #00ff88, #00ccff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
-            text-align: center;
-        }
-
-        .wheel-container {
-            position: relative;
-            width: 360px;
-            height: 360px;
-            margin: 20px 0;
-            filter: drop-shadow(0 0 15px rgba(0, 255, 136, 0.2));
-        }
-
-        /* 指針 */
-        .stopper {
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 50px;
-            clip-path: polygon(100% 0, 50% 100%, 0 0);
-            z-index: 10;
-            background: linear-gradient(to bottom, #ff0055, #ff4d4d);
-            box-shadow: 0 0 15px #ff0055;
-        }
-
-        /* 轉盤主體 */
-        .wheel {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 4px solid var(--wheel-border);
-            position: relative;
-            transition: transform 4s cubic-bezier(0.1, 0.7, 0.1, 1);
-            box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.5);
-            
-            /* 背景角度定義 (Conic Gradient 0deg = 12點鐘):
-               1. 1999 (0° ~ 270°) -> 黑色
-               2. 1299 (270° ~ 310°) -> 藍色 (40度寬)
-               3. 1499 (310° ~ 340°) -> 橘色 (30度寬)
-               4. 1099 (340° ~ 360°) -> 粉色 (20度寬 - 最小!)
-            */
-            background: conic-gradient(
-                #2a2a2a 0deg 270deg,   
-                #2980b9 270deg 310deg, 
-                #f39c12 310deg 340deg, 
-                #ff0055 340deg 360deg  
-            );
-        }
-
-        .wheel::after {
+        /* 掃描線背景特效 */
+        body::before {
             content: "";
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px; height: 50px;
-            background: radial-gradient(circle, #333, #000);
-            border: 2px solid #00ff88;
-            border-radius: 50%;
-            z-index: 5;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 1;
         }
 
-        /* 文字標籤設定 */
-        .label {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            /* 關鍵修正：先置中，再旋轉 */
-            transform-origin: center; 
+        h1 {
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
             color: #fff;
-            font-weight: bold;
-            user-select: none;
+            text-shadow: 0 0 10px var(--glitch);
+            margin-bottom: 40px;
             text-align: center;
-            line-height: 1;
+            z-index: 2;
         }
 
-        .label span {
-            display: block;
-            /* 文字修正：讓文字底部朝向圓心 */
+        /* 數字顯示器容器 */
+        .display-container {
+            position: relative;
+            background: #000;
+            border: 4px solid var(--primary);
+            padding: 40px 60px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.1), inset 0 0 20px rgba(0, 255, 136, 0.1);
+            margin-bottom: 40px;
+            z-index: 2;
+            width: 300px;
+            text-align: center;
+            transform: perspective(500px) rotateX(10deg); /* 微微傾斜更有儀器感 */
         }
 
-        /* 座標修正數學 (重要！):
-           CSS Rotate 0度 = 3點鐘方向 (右)
-           Gradient 0度 = 12點鐘方向 (上)
-           
-           所以：CSS角度 = Gradient角度 - 90度
-        */
-
-        /* $1999 (區間 0-270) -> 中心 135度
-           CSS = 135 - 90 = 45度
-        */
-        .label-1999 { 
-            transform: translate(-50%, -50%) rotate(45deg) translate(80px) rotate(-45deg); 
-            font-size: 28px;
-            color: #666; /* 讓黑色區塊文字暗一點，突顯其他 */
-        }
-
-        /* $1299 (區間 270-310) -> 中心 290度
-           CSS = 290 - 90 = 200度
-        */
-        .label-1299 { 
-            transform: translate(-50%, -50%) rotate(200deg) translate(120px) rotate(90deg); 
-            font-size: 14px;
-        }
-
-        /* $1499 (區間 310-340) -> 中心 325度
-           CSS = 325 - 90 = 235度
-        */
-        .label-1499 { 
-            transform: translate(-50%, -50%) rotate(235deg) translate(120px) rotate(90deg); 
-            font-size: 13px;
-        }
-
-        /* $1099 (區間 340-360) -> 中心 350度
-           CSS = 350 - 90 = 260度
-        */
-        .label-1099 { 
-            transform: translate(-50%, -50%) rotate(260deg) translate(130px) rotate(90deg); 
-            font-size: 12px;
-            color: #fff;
-            text-shadow: 0 0 5px #ff0055;
+        .price-tag {
+            font-size: 5rem;
             font-weight: 900;
-        }
-
-
-        #spinBtn {
-            margin-top: 30px;
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            background: transparent;
             color: var(--primary);
-            border: 2px solid var(--primary);
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
-            font-weight: bold;
+            text-shadow: 0 0 20px var(--primary), 0 0 40px var(--primary);
+            position: relative;
+            display: inline-block;
         }
-        #spinBtn:hover {
-            background: var(--primary);
-            color: #000;
-            box-shadow: 0 0 30px var(--primary);
-        }
-        #spinBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        /* 故障雜訊特效 */
+        .glitch-effect {
+            animation: glitch-anim 0.3s infinite;
+        }
+
+        @keyframes glitch-anim {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        /* 按鈕 */
+        #stopBtn {
+            padding: 20px 60px;
+            font-size: 1.5rem;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 3px;
+            box-shadow: 0 0 20px var(--danger);
+            transition: all 0.1s;
+            position: relative;
+            z-index: 10;
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+        }
+
+        #stopBtn:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 5px var(--danger);
+        }
+
+        #stopBtn:disabled {
+            background: #333;
+            box-shadow: none;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            margin-top: 20px;
+            color: #888;
+            font-size: 0.9rem;
+            z-index: 2;
+        }
+
+        #resultMsg {
+            height: 40px;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            z-index: 2;
+            text-shadow: 0 0 10px white;
+        }
+
+        /* 彩帶 Canvas */
         #confetti-canvas {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100;
         }
-        #resultMsg {
-            margin-top: 15px; height: 30px; color: #fff; font-size: 1.2rem;
-            text-shadow: 0 0 10px rgba(255,255,255,0.5); opacity: 0; transition: opacity 0.5s;
-        }
+
     </style>
 </head>
 <body>
 
     <canvas id="confetti-canvas"></canvas>
-    <h1>幸運折扣任你抽！</h1>
 
-    <div class="wheel-container">
-        <div class="stopper"></div>
-        <div class="wheel" id="wheel">
-            <div class="label label-1999"><span>$1999</span></div>
-            <div class="label label-1299"><span>$1299</span></div>
-            <div class="label label-1499"><span>$1499</span></div>
-            <div class="label label-1099"><span>$1099</span></div>
-        </div>
+    <h1>狙擊YTAI優惠折扣</h1>
+
+    <div class="display-container">
+        <div class="price-tag" id="priceDisplay">$1999</div>
     </div>
 
+    <button id="stopBtn">鎖定價格</button>
     <div id="resultMsg"></div>
-    <button id="spinBtn">開始抽獎</button>
+    <div class="hint">看準時機，按下鎖定！</div>
 
     <script>
-        const wheel = document.getElementById('wheel');
-        const spinBtn = document.getElementById('spinBtn');
+        const display = document.getElementById('priceDisplay');
+        const btn = document.getElementById('stopBtn');
         const resultMsg = document.getElementById('resultMsg');
+
+        // 獎項池
+        const prices = [1999, 1299, 1499, 1099];
+        let currentIndex = 0;
+        let intervalId = null;
+        let isRunning = true;
         
-        let currentRotation = 0;
-        let spinCount = 0;
-        const maxRiggedSpins = 5; 
+        let playCount = 0;
+        const maxRiggedPlays = 5;
 
-        spinBtn.addEventListener('click', () => {
-            spinBtn.disabled = true;
-            resultMsg.style.opacity = '0';
-            spinCount++;
+        // 啟動快速跳動
+        function startRolling() {
+            isRunning = true;
+            btn.innerText = "鎖定價格";
+            btn.disabled = false;
+            resultMsg.innerText = "";
+            display.classList.remove('glitch-effect');
+            display.style.color = "var(--primary)";
+            display.style.textShadow = "0 0 20px var(--primary)";
 
-            const baseSpins = 360 * 10; 
+            // 極速跳動 (每 50ms 換一次數字)
+            intervalId = setInterval(() => {
+                // 這裡我們只是隨機顯示數字造成視覺暫留，不影響結果
+                // 為了視覺效果，我們讓 1099 出現頻率稍微低一點點，讓用戶覺得很難抓
+                const randomIdx = Math.floor(Math.random() * prices.length);
+                display.innerText = "$" + prices[randomIdx];
+            }, 50);
+        }
 
-            // 角度計算邏輯 (修正後)
-            // 目標是指針(12點方向, Gradient 0度) 停在特定區間
-            
-            let targetAngle;
-            let outcome;
+        // 初始化
+        startRolling();
 
-            if (spinCount < maxRiggedSpins) {
-                // === 失敗 (前4次) ===
-                outcome = 'lose';
-                // 停在 $1999 (0-270度)
-                // 但要營造 "剛剛錯過 $1099" 的感覺
-                // $1099 在 340-360(0)。
-                // 所以指針應該停在 0度 順時針過去一點點的地方 (如 5度~10度)
-                
-                const nearMiss = Math.floor(Math.random() * 10) + 5; // 5度到14度
-                const stopAngle = 360 - nearMiss;
-                targetAngle = baseSpins + stopAngle;
-
-            } else {
-                // === 必勝 (第5次) ===
-                outcome = 'win';
-                // 停在 $1099 (340-360度)
-                // 中心 350度
-                const winTarget = 350;
-                const offset = Math.floor(Math.random() * 6) - 3; // -3 ~ +3 微調
-                const stopAngle = 360 - (winTarget + offset);
-                targetAngle = baseSpins + stopAngle;
+        btn.addEventListener('click', () => {
+            if (!isRunning) {
+                // 如果已經停了，按按鈕就是重來
+                startRolling();
+                return;
             }
 
-            const currentMod = currentRotation % 360;
-            const targetMod = targetAngle % 360;
-            let adjust = targetMod - currentMod;
-            if (adjust < 0) adjust += 360;
+            // 用戶按下鎖定
+            playCount++;
+            isRunning = false;
+            btn.disabled = true;
+            clearInterval(intervalId); // 停止隨機亂跳
             
-            const finalRotate = currentRotation + baseSpins + adjust;
-            
-            wheel.style.transform = `rotate(${finalRotate}deg)`;
-            currentRotation = finalRotate;
-
-            setTimeout(() => {
-                spinBtn.disabled = false;
-                spinBtn.innerText = "再來一次";
-                resultMsg.style.opacity = '1';
-
-                if (outcome === 'win') {
-                    resultMsg.innerText = "🎉 恭喜！你抽中了 $1099！ 🎉";
-                    resultMsg.style.color = "#00ff88";
-                    startConfetti();
-                } else {
-                    resultMsg.innerText = "真可惜！獲得原價 $1999";
-                    resultMsg.style.color = "#aaa";
-                }
-            }, 4000);
+            // 開始進入「煞車」階段 (決策結果)
+            handleStopSequence();
         });
 
+        function handleStopSequence() {
+            let sequence = [];
+            
+            // 定義煞車時會看到的數字序列
+            // 邏輯：快速閃過幾個數字 -> 變慢 -> 停在結果
+            
+            if (playCount < maxRiggedPlays) {
+                // === 失敗模式 (Rigged Lose) ===
+                // 劇本： 顯示 1299 -> 1499 -> 1099 (慢下來) -> 停頓 -> 滑到 1999 (崩潰)
+                sequence = [1299, 1499, 1099, 1999];
+            } else {
+                // === 勝利模式 (Win) ===
+                // 劇本： 顯示 1499 -> 1299 -> 1999 -> 1099 (死死停住)
+                sequence = [1499, 1299, 1999, 1099];
+            }
+
+            let seqIndex = 0;
+            
+            // 使用遞迴 setTimeout 來模擬物理減速 (時間間隔越來越長)
+            function nextStep(delay) {
+                if (seqIndex >= sequence.length) {
+                    // 動畫結束
+                    finalizeResult();
+                    return;
+                }
+
+                display.innerText = "$" + sequence[seqIndex];
+                
+                // 特殊效果：如果現在顯示的是 1099 且不是最後一個，給它加個紅色高亮誘惑一下
+                if (sequence[seqIndex] === 1099 && seqIndex !== sequence.length -1) {
+                    display.style.color = "#fff"; // 閃白光
+                } else {
+                    display.style.color = "var(--primary)";
+                }
+
+                seqIndex++;
+                
+                // 下一次跳動的時間變長 (減速效果)
+                // 序列: 50ms -> 100ms -> 300ms -> 600ms (最後一下很慢)
+                const newDelay = delay * 2.5; 
+                setTimeout(() => nextStep(newDelay), delay);
+            }
+
+            // 開始減速序列，初始速度 50ms
+            nextStep(50);
+        }
+
+        function finalizeResult() {
+            const finalValue = display.innerText;
+            btn.disabled = false;
+            btn.innerText = "再來一次";
+
+            if (finalValue === "$1099") {
+                // 中獎
+                display.classList.add('glitch-effect'); // 數字開始故障閃爍
+                display.style.color = "#00ff88"; // 亮綠色
+                resultMsg.innerText = "鎖定成功！折扣生效！";
+                resultMsg.style.color = "#00ff88";
+                startConfetti();
+            } else {
+                // 失敗 ($1999)
+                display.style.color = "#ff0055"; // 紅色警告
+                display.style.textShadow = "none";
+                resultMsg.innerText = "喔⋯⋯獲得原價！";
+                resultMsg.style.color = "#ff0055";
+            }
+        }
+
+        // --- 煙花特效 (沿用) ---
         const canvas = document.getElementById('confetti-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
